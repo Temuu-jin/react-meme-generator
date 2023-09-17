@@ -1,46 +1,22 @@
 import './MemeGenerator.scss'; // Import the SCSS file
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
-function OneOrTwo({
-  isTwo,
-  topText,
-  bottomText,
-  handleInputChangeTop,
-  handleInputChangeBottom,
-}) {
-  return isTwo ? (
-    <>
-      <input
-        placeholder="Top Text"
-        value={topText}
-        onChange={handleInputChangeTop}
-      />
-      <input
-        placeholder="Bottom Text"
-        value={bottomText}
-        onChange={handleInputChangeBottom}
-      />
-    </>
-  ) : (
-    <input
-      placeholder="Top Text"
-      value={topText}
-      onChange={handleInputChangeTop}
-    />
-  );
-}
-
+// Missing: More Lines, Style attribute for top, clear button, search and enter function
+// Main Function
 function MemeGenerator() {
   const [randomTemplate, setRandomTemplate] = useState(null);
   const [topText, setTopText] = useState(' ');
   const [bottomText, setBottomText] = useState(' ');
   const [isLoaded, setIsLoaded] = useState(false);
   const [isTwo, setIsTwo] = useState(null);
+  const [dataTemplates, setDataTemplates] = useState([]);
 
-  const fetchRandomTemplate = () => {
+  // Fetching Template Objects
+  const fetchTemplates = () => {
     fetch('https://api.memegen.link/templates')
       .then((response) => response.json())
       .then((data) => {
+        setDataTemplates(data);
         const randomIndex = Math.floor(Math.random() * data.length);
         setRandomTemplate(data[randomIndex]);
         const isTemplateWithTwoLines = data[randomIndex].lines === 2;
@@ -54,33 +30,90 @@ function MemeGenerator() {
       });
   };
   useEffect(() => {
-    fetchRandomTemplate();
+    fetchTemplates();
   }, []);
 
+  // Handle Changing Top Text Input !!ADD FUNCTION OF MORE LINES
   const handleInputChangeTop = (e) => {
-    setTopText(e.target.value);
+    if (e.target.value === '') {
+      setTopText(' ');
+    } else {
+      setTopText(e.target.value);
+    }
   };
+
+  // Handle Changing Bottom Text Input
   const handleInputChangeBottom = (e) => {
     setBottomText(e.target.value);
   };
 
+  // Change the template from dropdown
+  const handleTemplateChange = (e) => {
+    const selectedTemplateId = e.target.value;
+    const selectedTemplate = dataTemplates.find(
+      (template) => template.id === selectedTemplateId,
+    );
+    setRandomTemplate(selectedTemplate);
+    setIsTwo(selectedTemplate.lines === 2);
+  };
+
+  // Gemerate a Meme URL with the input text
   const generateMemeUrl = () => {
     let memeUrl = `https://api.memegen.link/images/${randomTemplate.id}/`;
-    memeUrl += `${encodeURIComponent(topText)}`;
-    memeUrl += `/${encodeURIComponent(bottomText)}`;
+    memeUrl += encodeURIComponent(topText);
+    memeUrl += `/${encodeURIComponent(bottomText)}`; //adjust for more lines
     memeUrl += `.png`;
 
     return memeUrl;
   };
 
+  // Download  function for button
+  function downloadFileFromUrl(url, filename) {
+    fetch(url)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+
+        return response.blob();
+      })
+      .then((blob) => {
+        const objectURL = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = objectURL;
+        a.download = filename;
+
+        a.click();
+
+        URL.revokeObjectURL(objectURL);
+      })
+      .catch((error) => {
+        console.error('Error downloading file:', error);
+      });
+  }
+
+  // HTML/CSS/JS Render:
   return (
     <div>
-      <h1>Meme Generator</h1>
       {isLoaded ? (
         <div className="meme-generator">
+          <h1>Meme Generator</h1>
           <h2>Selected Template: {randomTemplate.name}</h2>
+          <select
+            onChange={handleTemplateChange}
+            value={randomTemplate ? randomTemplate.id : ''}
+          >
+            <option value="">Select Template</option>
+            {dataTemplates.map((template) => (
+              <option key={template.id} value={template.id}>
+                {template.name}
+              </option>
+            ))}
+          </select>
 
           <img src={generateMemeUrl()} alt="Generate Meme" />
+
           <OneOrTwo
             isTwo={isTwo}
             topText={topText}
@@ -88,11 +121,51 @@ function MemeGenerator() {
             handleInputChangeTop={handleInputChangeTop}
             handleInputChangeBottom={handleInputChangeBottom}
           />
+          <button
+            onClick={() => downloadFileFromUrl(generateMemeUrl(), topText)}
+          >
+            Download
+          </button>
         </div>
       ) : (
         <p>Loading...</p>
       )}
     </div>
+  );
+}
+
+// Rendering One or Two InputFields
+function OneOrTwo({
+  isTwo,
+  topText,
+  bottomText,
+  handleInputChangeTop,
+  handleInputChangeBottom,
+}) {
+  return isTwo ? (
+    <>
+      <form></form>
+      <label for="Top text">Top Text</label>
+      <input
+        id="Top text"
+        className="meme-generator input"
+        value={topText}
+        onChange={handleInputChangeTop}
+      />
+      <label for="Bottom text">Bottom Text</label>
+      <input
+        id="Bottom text"
+        className="meme-generator input"
+        value={bottomText}
+        onChange={handleInputChangeBottom}
+      />
+    </>
+  ) : (
+    <input
+      placeholder="Top Text"
+      value={topText}
+      onChange={handleInputChangeTop}
+    />
   );
 }
 
