@@ -11,6 +11,34 @@ function MemeGenerator() {
   const [isTwo, setIsTwo] = useState(null);
   const [dataTemplates, setDataTemplates] = useState([]);
 
+  const transformUrl = (text) => {
+    // Define the transformation rules
+    const rules = {
+      _: ' ',
+      '-': ' ',
+      __: '_',
+      '--': '-',
+      '~n': '\n',
+      '~q': '?',
+      '~a': '&',
+      '~p': '%',
+      '~h': '#',
+      '~s': '/',
+      '~b': '\\',
+      '~l': '<',
+      '~g': '>',
+      "''": '"',
+    };
+
+    // Apply the transformation rules to the input text
+    let transformed = text;
+    for (const pattern in rules) {
+      transformed = transformed.split(pattern).join(rules[pattern]);
+    }
+
+    return transformed;
+  };
+
   // Fetching Template Objects
   const fetchTemplates = () => {
     fetch('https://api.memegen.link/templates')
@@ -38,13 +66,17 @@ function MemeGenerator() {
     if (e.target.value === '') {
       setTopText(' ');
     } else {
-      setTopText(e.target.value);
+      const newText = e.target.value;
+      const transformedUrl = transformUrl(newText);
+      setTopText(transformedUrl);
     }
   };
 
   // Handle Changing Bottom Text Input
   const handleInputChangeBottom = (e) => {
-    setBottomText(e.target.value);
+    const newText = e.target.value;
+    const transformedUrl = transformUrl(newText);
+    setBottomText(transformedUrl);
   };
 
   // Change the template from dropdown
@@ -61,7 +93,7 @@ function MemeGenerator() {
   const generateMemeUrl = () => {
     let memeUrl = `https://api.memegen.link/images/${randomTemplate.id}/`;
     memeUrl += encodeURIComponent(topText);
-    memeUrl += `/${encodeURIComponent(bottomText)}`; //adjust for more lines
+    memeUrl += `/${encodeURIComponent(bottomText)}`; // adjust for more lines
     memeUrl += `.png`;
 
     return memeUrl;
@@ -99,8 +131,9 @@ function MemeGenerator() {
       {isLoaded ? (
         <div className="meme-generator">
           <h1>Meme Generator</h1>
-          <h2>Selected Template: {randomTemplate.name}</h2>
+          <label htmlFor="Meme template">Meme template</label>
           <select
+            id="Meme template"
             onChange={handleTemplateChange}
             value={randomTemplate ? randomTemplate.id : ''}
           >
@@ -112,7 +145,11 @@ function MemeGenerator() {
             ))}
           </select>
 
-          <img src={generateMemeUrl()} alt="Generate Meme" />
+          <img
+            src={generateMemeUrl()}
+            alt="Generate Meme"
+            data-test-id="meme-image"
+          />
 
           <OneOrTwo
             isTwo={isTwo}
@@ -123,8 +160,19 @@ function MemeGenerator() {
           />
           <button
             onClick={() => downloadFileFromUrl(generateMemeUrl(), topText)}
+            className="download"
           >
             Download
+          </button>
+          <br />
+          <button
+            onClick={() => {
+              setBottomText(' ');
+              setTopText(' ');
+            }}
+            className="download"
+          >
+            Clear
           </button>
         </div>
       ) : (
@@ -144,15 +192,15 @@ function OneOrTwo({
 }) {
   return isTwo ? (
     <>
-      <form></form>
-      <label for="Top text">Top Text</label>
+      <form />
+      <label htmlFor="Top text">Top Text</label>
       <input
         id="Top text"
         className="meme-generator input"
         value={topText}
         onChange={handleInputChangeTop}
       />
-      <label for="Bottom text">Bottom Text</label>
+      <label htmlFor="Bottom text">Bottom Text</label>
       <input
         id="Bottom text"
         className="meme-generator input"
